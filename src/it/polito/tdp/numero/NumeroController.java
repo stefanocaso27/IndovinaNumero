@@ -2,6 +2,8 @@ package it.polito.tdp.numero;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.numero.model.NumeroModel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
@@ -9,14 +11,14 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 
 public class NumeroController {
+	
+	private NumeroModel model;
 
-	private final int NMAX = 100;
-	private final int TMAX = 8;
+	public void setModel(NumeroModel model) {
+		this.model = model;
+	}
 
-	private int segreto;
-	private int tentativiFatti;
-	private boolean inGioco = false;
-
+	
 	@FXML
 	private ResourceBundle resources;
 
@@ -45,16 +47,17 @@ public class NumeroController {
 		// Gestisce l'inizio di una nuova partita
 
 		// Logica del gioco
-		this.segreto = (int) (Math.random() * NMAX) + 1;
-		this.tentativiFatti = 0;
-		this.inGioco = true;
+		
 
 		// Gestione dell'interfaccia
 		boxControllopartita.setDisable(true);
 		boxControlloTentativi.setDisable(false);
 		txtMessaggi.clear();
-		txtRimasti.setText(Integer.toString(this.TMAX));
-
+		txtTentativo.clear();
+		txtRimasti.setText(Integer.toString(model.getTMAX()));
+		
+		//comunico che e' iniziata una nuova partita
+		model.newGame();
 	}
 
 	@FXML
@@ -63,63 +66,54 @@ public class NumeroController {
 		// Leggi il valore del tentativo
 		String ts = txtTentativo.getText();
 
-		// Controlla se è valido
+		// Controlla se e' valido (il tipo di dato)
 
 		int tentativo ;
 		try {
 			tentativo = Integer.parseInt(ts);
 		} catch (NumberFormatException e) {
 			// la stringa inserita non è un numero valido
-			txtMessaggi.appendText("Non è un numero valido\n");
+			txtMessaggi.appendText("Non e' un numero valido\n");
 			return ;
 		}
 		
+		if(!model.tentativoValido(tentativo)) {
+			txtMessaggi.appendText("Non e' un numero valido\n");
+			return;
+		}
 
-		tentativiFatti++ ;
+		int risultato = model.tentativo(tentativo);
 		
-		// Controlla se ha indovinato
-		// -> fine partita
-		if(tentativo==segreto) {
-			txtMessaggi.appendText("Complimenti, hai indovinato in "+tentativiFatti+" tentativi\n");
-			
+		if(risultato == 0) {
+			txtMessaggi.appendText("Complimenti, hai indovinato in "+model.getTentativiFatti()+" tentativi\n");
 			boxControllopartita.setDisable(false);
 			boxControlloTentativi.setDisable(true);
-			this.inGioco=false ;
-			return ;
-		}
-
-		// Verifica se ha esaurito i tentativi
-		// -> fine partita
-		if(tentativiFatti==TMAX) {
-			txtMessaggi.appendText("Hai PERSO, il numero segreto era: "+segreto+"\n");
-			
-			boxControllopartita.setDisable(false);
-			boxControlloTentativi.setDisable(true);
-			this.inGioco=false ;
-			return ;
-
-		}
-
-		// Informa se era troppo alto/troppo basso
-		// -> stampa messaggio
-		if(tentativo<segreto) {
+		} else if (risultato < 0) {
 			txtMessaggi.appendText("Tentativo troppo BASSO\n");
-		} else {
+		} else if (risultato > 0) {
 			txtMessaggi.appendText("Tentativo troppo ALTO\n");
 		}
-
-		// Aggiornare interfaccia con n. tentativi rimasti
-		txtRimasti.setText(Integer.toString(TMAX-tentativiFatti));
-
+		
+		//Aggiornare interfaccia
+		
+		txtRimasti.setText(Integer.toString(model.getTMAX()-model.getTentativiFatti()));
+		if(!model.isInGioco()) {
+			if(risultato != 0) {
+				txtMessaggi.appendText("Hai perso!");
+				txtMessaggi.appendText(String.format("\nIl numero segreto era: ", model.getSegreto()));
+				boxControllopartita.setDisable(false);
+				boxControlloTentativi.setDisable(true);
+			}
+		}
 	}
-
-	@FXML
+		
+		@FXML
 	void initialize() {
 		assert boxControllopartita != null : "fx:id=\"boxControllopartita\" was not injected: check your FXML file 'Numero.fxml'.";
 		assert txtRimasti != null : "fx:id=\"txtRimasti\" was not injected: check your FXML file 'Numero.fxml'.";
 		assert boxControlloTentativi != null : "fx:id=\"boxControlloTentativi\" was not injected: check your FXML file 'Numero.fxml'.";
 		assert txtTentativo != null : "fx:id=\"txtTentativo\" was not injected: check your FXML file 'Numero.fxml'.";
 		assert txtMessaggi != null : "fx:id=\"txtMessaggi\" was not injected: check your FXML file 'Numero.fxml'.";
-
+		
 	}
 }
